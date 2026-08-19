@@ -1,27 +1,31 @@
-import http from "http";
+import express from "express";
+import chalk from "chalk";
+import { userRouter } from "./src/routes/userRouter.js";
+const app = express();
 const PORT = 8000;
-const users = [
-    { id: 1, name: "Devin" },
-    { id: 2, name: "Dimas" },
-    { id: 3, name: "Daffa" },
-];
-const server = http.createServer((req, res) => {
-    if (req.url === "/api" && req.method === "GET") {
-        res.writeHead(200);
-        res.write("Welcome to my API");
-        res.end();
-    }
-    else if (req.url === "/users" && req.method === "GET") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.write(JSON.stringify(users));
-        res.end();
-    }
-    else {
-        res.writeHead(404);
-        res.write("route not Found");
-        res.end();
-    }
+app.use(express.json());
+app.get("/api", (_req, res) => {
+    res.status(200).json({
+        message: "Welcome to my API",
+    });
 });
-server.listen(PORT, () => {
-    console.log(`Server running on port: ${PORT}`);
+app.use("/users", userRouter);
+app.use((_req, res) => {
+    res.status(404).json({
+        message: "Route not found",
+    });
+});
+app.use((err, _req, res, _next) => {
+    console.error("Error:", err);
+    const statusCode = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(statusCode).json({
+        message,
+        ...(process.env.NODE_ENV === "development" && {
+            error: err,
+        }),
+    });
+});
+app.listen(PORT, () => {
+    console.log(chalk.green(`Server running on PORT ${PORT}`));
 });
